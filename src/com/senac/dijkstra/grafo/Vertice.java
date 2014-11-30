@@ -59,7 +59,7 @@ public class Vertice<T> {
     }
 
     public Double getPesoAte(Vertice<T> destino) {
-        Double peso = new Double(0);
+        Double peso = Double.POSITIVE_INFINITY;
 
         for (Aresta aresta : this.getArestas()) {
             if (aresta.getVerticeInicio().equals(destino)
