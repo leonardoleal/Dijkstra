@@ -1,119 +1,105 @@
 package com.senac.dijkstra.grafo;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+
 
 public class Dijkstra<T> {
-    private Grafo<T> grafo;
+	private Set<Vertice<T>> naoVisitados;
+	private Map<Vertice<T>, Vertice<T>> anteriores; 
+	private Map<Vertice<T>, Double> custos;
+	private Stack<Vertice<T>> melhorCaminho;
     private double custoTotal;
-    private Queue<Vertice<T>> melhorCaminho;
-    private ArrayList<Double> custo;
-    private ArrayList<Double> caminhoC;
 
-    public Dijkstra(Grafo<T> g) {
-        this.grafo = g;
+	public Dijkstra() {}
+
+    /**
+     * Inicializa o estado de todos objetos
+     */
+    private void init() {
+        this.naoVisitados = new HashSet<Vertice<T>>();
+        this.anteriores = new HashMap<Vertice<T>, Vertice<T>>();
+        this.custos = new HashMap<Vertice<T>, Double>();
+        this.melhorCaminho = new Stack<Vertice<T>>();
         this.custoTotal = 0;
-
-        // inicia valores infinitos
-        // e o vertice utilizado para o caminho
-        custo = new ArrayList<Double>();
-        caminhoC = new ArrayList<Double>();
-        for (int i = 0; i < grafo.getVertices().size(); i++) {
-            custo.add(Double.POSITIVE_INFINITY);
-            caminhoC.add(-1.0);
-        }
     }
 
-    public Queue<Vertice<T>> calcularMelhorCaminho(Vertice<T> inicial, Vertice<T> finau) {
-        // se os vertices forem inválidos
-        if (inicial == null || finau == null) {
-            return null;
+	public Stack<Vertice<T>> calcularMenorCaminho(Vertice<T> inicial, Vertice<T> finau) {
+	    // caso usado mais de uma vez, limpa tudo
+	    this.init();
+
+	    // ponto inexistente
+	    if (inicial == null || finau == null) {
+	        return null;
+
+	    } else if (inicial.equals(finau)) {
+        // ponto inicial e final são os mesmos
+	        melhorCaminho.push(inicial);
+
+	    } else {
+    	    naoVisitados.add(inicial);
+    		custos.put(inicial, 0.0);
+    
+    		while (naoVisitados.size() > 0) {
+    			Vertice<T> vertice = getMinimo(this.naoVisitados);
+    			this.naoVisitados.remove(vertice);
+    			procurarMenorCusto(vertice);
+    		}
+    
+    		if (anteriores.get(finau) == null) {
+    			return null;
+    		}
+    
+    		Vertice<T> passo = finau;
+    		this.melhorCaminho.push(passo);
+    
+    		while (anteriores.get(passo) != null) {
+    		    this.custoTotal += passo.getPesoAte(this.anteriores.get(passo));
+    			passo = this.anteriores.get(passo);
+    			this.melhorCaminho.push(passo);
+    		}
         }
 
-        // TODO rever o alg de Dijktra
-//        // seta valor 0 para a origem
-//        custo.set(grafo.getVertices().indexOf(inicial), 0.0);
-//
-//        // vértices ainda não contém a distância
-//        ArrayList<Vertice<T>> naoVisitados = grafo.getVertices();
-//        naoVisitados.remove(inicial);
-//
-//        while (! naoVisitados.isEmpty()) {
-//            Vertice<T> u = getMenorCusto(naoVisitados);
-//
-//            // para cada v adjacente a u
-//            for (Vertice<T> v : u.getAdjacentes()) {
-//                // peso = peso(de u, até v);
-//                Double peso = u.getPesoAte(v);
-//
-//                // se d[v] > d[u] + w(u, v) 
-//                if (custo.get(v.getSequencial()) < custo.get(u.getSequencial()) + peso) {
-//                    // custo[v] = custo [u] + peso(de u, até v)
-//                    custo.set(v.getSequencial(),
-//                            custo.get(u.getSequencial()) + peso
-//                            );
-//
-//                    // caminho[v] = u
-//                    caminhoC.set(v.getSequencial(),
-//                            (double) u.getSequencial());
-//                    melhorCaminho.offer(u);
-//
-//                    // Q = Q U {v} // remove V dos visitados
-//                    naoVisitados.remove(v);
-//                    System.out.println("Faltam " + naoVisitados.size() + " vertices para visitar.");
-//                }
-//            }
-//
-//            naoVisitados.remove(u);
-//            System.out.println("Faltam " + naoVisitados.size() + " vertices para visitar.");
-//        }
+		return this.melhorCaminho;
+	}
 
-        
+	private Vertice<T> getMinimo(Set<Vertice<T>> vertices) {
+		Vertice<T> minimo = null;
+		for (Vertice<T> vertice : vertices) {
+			if (minimo == null || (getMenorPeso(vertice) < getMenorPeso(minimo)))
+				minimo = vertice;
+		}
 
-        //trecho de código somente de teste
-        // remover após implementação correta
-        /* inicio */
-        Queue<Vertice<T>> caminho = new LinkedList<Vertice<T>>();
-        caminho.offer(inicial);
-        caminho.offer(finau);
-        this.custoTotal = inicial.getAresta(0).getPeso();
-        this.custoTotal += finau.getAresta(0).getPeso();
-        this.setMelhorCaminho(caminho);
-        /* fim */
+		return minimo;
+	}
 
-//        this.setMelhorCaminho(caminhoC);
-        return caminho;
-    }
+	private double getMenorPeso(Vertice<T> destino) {
+		Double distancia = this.custos.get(destino);
+		return (distancia == null ? Double.POSITIVE_INFINITY : distancia);
+	}
 
-    private Vertice<T> getMenorCusto(ArrayList<Vertice<T>> vertices) {
-        Vertice<T> menorCusto = null;
+	private void procurarMenorCusto(Vertice<T> vertice) {
+		List<Vertice<T>> verticesAdjacentes = vertice.getAdjacentes();
+		for (Vertice<T> destino : verticesAdjacentes) {
+		    double peso = vertice.getPesoAte(destino);
 
-        for (Vertice<T> v : vertices) {
-            if (menorCusto == null 
-                || custo.get(grafo.getVertices().indexOf(v))
-                    < custo.get(grafo.getVertices().indexOf(menorCusto))
-            ) {
-                menorCusto = v;
-            }
-        }
-
-        return menorCusto;
-    }
+			if (getMenorPeso(destino) > (getMenorPeso(vertice) + peso)) {
+			    this.custos.put(destino, getMenorPeso(vertice) + peso);
+				this.anteriores.put(destino, vertice);
+				this.naoVisitados.add(destino);
+			}
+		}
+	}
 
     public double getCustoTotal() {
         return this.custoTotal;
     }
 
-    public Queue<Vertice<T>> getMelhorCaminho() {
+    public Stack<Vertice<T>> getMelhorCaminho() {
         return this.melhorCaminho;
-    }
-    
-    private void setMelhorCaminho(Queue<Vertice<T>> caminho) {
-        if (caminho != null) {
-            this.melhorCaminho = new LinkedList<Vertice<T>>();
-            this.melhorCaminho = caminho;
-            
-        }
     }
 }
